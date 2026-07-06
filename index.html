@@ -8,7 +8,7 @@
   body { margin: 0; padding: 20px; background: #0a0d10; display: flex; justify-content: center; }
   #hrt-root {
     width: 100%;
-    max-width: 900px;
+    max-width: 960px;
     --ink: #12181c;
     --panel: #182027;
     --paper: #ede8e0;
@@ -82,7 +82,7 @@
   .hrt-tab:hover { color: var(--paper); }
   .hrt-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
 
-  .hrt-body { padding: 22px 26px 28px; max-height: 620px; overflow-y: auto; }
+  .hrt-body { padding: 22px 26px 28px; max-height: 640px; overflow-y: auto; }
 
   /* ---- Roadmap track ---- */
   .hrt-progress-bar {
@@ -133,7 +133,7 @@
   .hrt-log-form {
     background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; margin-bottom: 20px;
   }
-  .hrt-log-form select, .hrt-log-form textarea {
+  .hrt-log-form select, .hrt-log-form textarea, .hrt-log-form input[type=text] {
     width: 100%; background: var(--ink); color: var(--paper); border: 1px solid var(--rule);
     border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 13px; margin-bottom: 10px; resize: vertical;
   }
@@ -143,6 +143,7 @@
     font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
   }
   .hrt-btn:hover { opacity: .9; }
+  .hrt-btn.secondary { background: none; border: 1px solid var(--teal); color: var(--teal); }
   .hrt-entry {
     border-left: 2px solid var(--teal); padding: 8px 0 8px 14px; margin-bottom: 14px;
   }
@@ -163,6 +164,35 @@
     padding: 5px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer; margin-top: 6px;
   }
   .hrt-refresh:hover { color: var(--paper); border-color: var(--teal); }
+
+  /* ---- Progress tab: heatmap + bars ---- */
+  .hrt-person-block { margin-bottom: 30px; }
+  .hrt-person-name { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .hrt-heatmap-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted);
+    letter-spacing: 1px; text-transform: uppercase; margin: 10px 0 6px;
+  }
+  .hrt-heatmap-row { display: flex; gap: 3px; flex-wrap: wrap; }
+  .hrt-heat-cell {
+    width: 16px; height: 16px; border-radius: 3px; background: var(--rule);
+    flex-shrink: 0;
+  }
+  .hrt-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .hrt-bar-name { width: 110px; font-size: 12px; color: var(--paper); flex-shrink: 0; }
+  .hrt-bar-track { flex: 1; height: 14px; background: var(--rule); border-radius: 4px; overflow: hidden; }
+  .hrt-bar-fill { height: 100%; background: var(--teal); border-radius: 4px; transition: width .3s; }
+  .hrt-bar-fill.amber { background: var(--amber); }
+  .hrt-bar-num { width: 30px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  .hrt-username-form {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; margin-bottom: 22px;
+  }
+  .hrt-username-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .hrt-username-row label { width: 130px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .hrt-username-row input {
+    flex: 1; background: var(--ink); color: var(--paper); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 13px;
+  }
 </style>
 </head>
 <body>
@@ -184,6 +214,7 @@
     <button class="hrt-tab" data-tab="frontend">Frontend</button>
     <button class="hrt-tab" data-tab="ai">AI + Pitch</button>
     <button class="hrt-tab" data-tab="log">Daily Log</button>
+    <button class="hrt-tab" data-tab="progress">Progress</button>
     <button class="hrt-tab" data-tab="overview">Overview</button>
   </div>
 
@@ -194,7 +225,7 @@
 (function(){
   // ====== CLOUD STORAGE CONFIG ======
   // 1. Create a free account at https://jsonbin.io
-  // 2. Create a new bin with content: {"progress":{},"logs":[]}
+  // 2. Create a new bin with content: {"progress":{},"logs":[],"githubUsernames":{}}
   // 3. Copy your Bin ID and X-Master-Key below
   const JSONBIN_ID = "6a4b8682f5f4af5e296601fc";
   const JSONBIN_KEY = "$2a$10$JXsMEDQPDbVfIPZP40mcnu.Y4TTgNvakle8Bk3ZH8yIh.7axNo.Ly";
@@ -333,8 +364,13 @@
   };
 
   const PEOPLE = ["Sharan (Leader)", "Shashank", "Sinchana"];
+  const HEATMAP_DAYS = 30;
+
   let progress = {};
   let logs = [];
+  let githubUsernames = {};        // { "Sharan (Leader)": "sharan-gh", ... }
+  let githubCommitData = {};       // { person: { "YYYY-MM-DD": count } }
+  let githubFetchStatus = "";      // status message shown in Progress tab
   let activeTab = "leader";
   const configured = JSONBIN_ID !== "PASTE_YOUR_BIN_ID_HERE" && JSONBIN_KEY !== "PASTE_YOUR_MASTER_KEY_HERE";
 
@@ -351,6 +387,7 @@
       const data = await res.json();
       progress = (data.record && data.record.progress) || {};
       logs = (data.record && data.record.logs) || [];
+      githubUsernames = (data.record && data.record.githubUsernames) || {};
     } catch(e) {
       console.error('load failed', e);
     }
@@ -362,12 +399,24 @@
       await fetch(JSONBIN_URL, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
-        body: JSON.stringify({ progress, logs })
+        body: JSON.stringify({ progress, logs, githubUsernames })
       });
     } catch(e) { console.error('save failed', e); }
   }
 
   function itemKey(track, wIdx, iIdx){ return track + '-' + wIdx + '-' + iIdx; }
+
+  function dateRange(n){
+    // returns array of "YYYY-MM-DD" strings, oldest first, ending today
+    const out = [];
+    const today = new Date();
+    for (let i = n - 1; i >= 0; i--){
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      out.push(d.toISOString().slice(0,10));
+    }
+    return out;
+  }
 
   function renderResources(track){
     const items = RESOURCES[track] || [];
@@ -460,6 +509,133 @@
     return streak;
   }
 
+  function logCountsByDate(person, days){
+    const counts = {};
+    days.forEach(d => counts[d] = 0);
+    logs.filter(l => l.person === person).forEach(l => {
+      if (counts.hasOwnProperty(l.date)) counts[l.date]++;
+    });
+    return counts;
+  }
+
+  function heatColor(count, max){
+    if (count <= 0) return 'var(--rule)';
+    const ratio = max > 0 ? count / max : 1;
+    if (ratio < 0.34) return 'rgba(79,182,164,0.4)';
+    if (ratio < 0.7) return 'rgba(79,182,164,0.7)';
+    return 'var(--teal)';
+  }
+
+  function renderHeatmapRow(counts, days){
+    const max = Math.max(1, ...Object.values(counts));
+    let html = `<div class="hrt-heatmap-row">`;
+    days.forEach(d => {
+      const c = counts[d] || 0;
+      html += `<div class="hrt-heat-cell" title="${d}: ${c}" style="background:${heatColor(c, max)}"></div>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  function renderBarRow(name, value, max, amber){
+    const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+    return `<div class="hrt-bar-row">
+      <div class="hrt-bar-name">${name}</div>
+      <div class="hrt-bar-track"><div class="hrt-bar-fill ${amber ? 'amber' : ''}" style="width:${pct}%"></div></div>
+      <div class="hrt-bar-num">${value}</div>
+    </div>`;
+  }
+
+  async function fetchGithubActivity(){
+    githubFetchStatus = "Fetching GitHub activity…";
+    render();
+    const days = dateRange(HEATMAP_DAYS);
+    const results = {};
+    for (const person of PEOPLE){
+      const username = (githubUsernames[person] || '').trim();
+      results[person] = {};
+      days.forEach(d => results[person][d] = 0);
+      if (!username) continue;
+      try {
+        const res = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/events/public`);
+        if (!res.ok) continue;
+        const events = await res.json();
+        events.forEach(ev => {
+          if (ev.type !== 'PushEvent') return;
+          const day = ev.created_at.slice(0,10);
+          const commitCount = (ev.payload && ev.payload.commits) ? ev.payload.commits.length : 1;
+          if (results[person].hasOwnProperty(day)) {
+            results[person][day] += commitCount;
+          }
+        });
+      } catch(e) {
+        console.error('github fetch failed for', username, e);
+      }
+    }
+    githubCommitData = results;
+    githubFetchStatus = "GitHub activity updated (shows recent public push events, last ~90 events per user).";
+    render();
+  }
+
+  function renderProgress(){
+    const days = dateRange(HEATMAP_DAYS);
+
+    let html = `<div class="hrt-username-form">
+      <div class="hrt-resources-title">GitHub usernames (for live commit tracking)</div>`;
+    PEOPLE.forEach(p => {
+      const uname = githubUsernames[p] || '';
+      html += `<div class="hrt-username-row">
+        <label>${p}</label>
+        <input type="text" data-username-for="${p}" value="${escapeHtml(uname)}" placeholder="github username">
+      </div>`;
+    });
+    html += `<button class="hrt-btn" id="hrt-save-usernames" style="margin-top:6px;">Save usernames</button>
+      <button class="hrt-btn secondary" id="hrt-fetch-github" style="margin-top:6px; margin-left:8px;">Fetch GitHub activity</button>`;
+    if (githubFetchStatus) html += `<div class="hrt-empty" style="margin-top:8px;">${githubFetchStatus}</div>`;
+    html += `</div>`;
+
+    // Daily log activity heatmaps
+    html += `<div class="hrt-resources-title" style="margin-bottom:14px;">Daily log activity — last ${HEATMAP_DAYS} days</div>`;
+    PEOPLE.forEach(p => {
+      const counts = logCountsByDate(p, days);
+      html += `<div class="hrt-person-block">
+        <div class="hrt-person-name">${p}</div>
+        ${renderHeatmapRow(counts, days)}
+      </div>`;
+    });
+
+    // GitHub commit heatmaps (only shown once fetched at least once)
+    if (Object.keys(githubCommitData).length){
+      html += `<div class="hrt-resources-title" style="margin-top:20px; margin-bottom:14px;">GitHub commit activity — last ${HEATMAP_DAYS} days</div>`;
+      PEOPLE.forEach(p => {
+        const counts = githubCommitData[p] || {};
+        const hasUsername = !!(githubUsernames[p] || '').trim();
+        html += `<div class="hrt-person-block">
+          <div class="hrt-person-name">${p}${hasUsername ? '' : ' <span style="color:var(--muted);font-weight:400;font-size:12px;">(no GitHub username set)</span>'}</div>
+          ${renderHeatmapRow(counts, days)}
+        </div>`;
+      });
+    }
+
+    // Bar chart comparison — total logs vs total commits (last 30 days)
+    html += `<div class="hrt-heatmap-label">Logs this month</div>`;
+    const logTotals = PEOPLE.map(p => logs.filter(l => l.person === p && days.includes(l.date)).length);
+    const maxLog = Math.max(1, ...logTotals);
+    PEOPLE.forEach((p, i) => { html += renderBarRow(p, logTotals[i], maxLog, false); });
+
+    if (Object.keys(githubCommitData).length){
+      html += `<div class="hrt-heatmap-label">Commits this month</div>`;
+      const commitTotals = PEOPLE.map(p => {
+        const counts = githubCommitData[p] || {};
+        return Object.values(counts).reduce((a,b) => a+b, 0);
+      });
+      const maxCommit = Math.max(1, ...commitTotals);
+      PEOPLE.forEach((p, i) => { html += renderBarRow(p, commitTotals[i], maxCommit, true); });
+    }
+
+    return html;
+  }
+
   function renderOverview(){
     let html = `<div class="hrt-stat-grid">`;
     PEOPLE.forEach(p => {
@@ -492,7 +668,7 @@
   }
 
   function escapeHtml(s){
-    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   function render(){
@@ -501,6 +677,7 @@
 
     if (activeTab === 'log') body.innerHTML = renderLogTab();
     else if (activeTab === 'overview') body.innerHTML = renderOverview();
+    else if (activeTab === 'progress') body.innerHTML = renderProgress();
     else body.innerHTML = renderRoadmap(activeTab);
 
     body.querySelectorAll('input[type=checkbox][data-track]').forEach(cb => {
@@ -527,6 +704,24 @@
         await saveData();
         render();
       });
+    }
+
+    const saveUsernamesBtn = document.getElementById('hrt-save-usernames');
+    if (saveUsernamesBtn){
+      saveUsernamesBtn.addEventListener('click', async () => {
+        body.querySelectorAll('input[data-username-for]').forEach(inp => {
+          const person = inp.getAttribute('data-username-for');
+          githubUsernames[person] = inp.value.trim();
+        });
+        await saveData();
+        githubFetchStatus = "Usernames saved.";
+        render();
+      });
+    }
+
+    const fetchGithubBtn = document.getElementById('hrt-fetch-github');
+    if (fetchGithubBtn){
+      fetchGithubBtn.addEventListener('click', fetchGithubActivity);
     }
   }
 
