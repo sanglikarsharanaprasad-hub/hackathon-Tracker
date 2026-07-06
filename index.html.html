@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hackathon Team Roadmap</title>
+<style>
+  body { margin: 0; padding: 20px; background: #0a0d10; display: flex; justify-content: center; }
+  #hrt-root {
+    width: 100%;
+    max-width: 900px;
+    --ink: #12181c;
+    --panel: #182027;
+    --paper: #ede8e0;
+    --amber: #e8a23d;
+    --teal: #4fb6a4;
+    --rule: #34424a;
+    --muted: #8b98a0;
+    --danger: #d9695a;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 14px;
+    padding: 0;
+    overflow: hidden;
+    min-height: 640px;
+  }
+  #hrt-root * { box-sizing: border-box; }
+  #hrt-root .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+
+  .hrt-header {
+    padding: 22px 26px 16px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .hrt-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    text-transform: uppercase;
+  }
+  .hrt-header h1 {
+    margin: 4px 0 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .hrt-daycount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .hrt-daycount b { color: var(--teal); font-size: 18px; display: block; }
+
+  .hrt-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 26px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--panel);
+    flex-wrap: wrap;
+  }
+  .hrt-tab {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 13px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    text-transform: uppercase;
+  }
+  .hrt-tab:hover { color: var(--paper); }
+  .hrt-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  .hrt-body { padding: 22px 26px 28px; max-height: 620px; overflow-y: auto; }
+
+  /* ---- Roadmap track ---- */
+  .hrt-progress-bar {
+    height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; margin-bottom: 20px;
+  }
+  .hrt-progress-fill { height: 100%; background: var(--teal); transition: width .3s; }
+
+  .hrt-track { position: relative; padding-left: 28px; }
+  .hrt-track::before {
+    content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px;
+    background: var(--rule);
+  }
+  .hrt-week { position: relative; margin-bottom: 22px; }
+  .hrt-week::before {
+    content: ''; position: absolute; left: -28px; top: 3px; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--ink); border: 2px solid var(--muted);
+  }
+  .hrt-week.done::before { background: var(--teal); border-color: var(--teal); }
+  .hrt-week-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--amber);
+    letter-spacing: 1px; margin-bottom: 3px;
+  }
+  .hrt-week-title { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+  .hrt-item {
+    display: flex; align-items: flex-start; gap: 9px; padding: 5px 0; font-size: 13.5px; color: var(--paper);
+    cursor: pointer; line-height: 1.4;
+  }
+  .hrt-item input { margin-top: 3px; accent-color: var(--teal); cursor: pointer; }
+  .hrt-item.checked span { color: var(--muted); text-decoration: line-through; }
+
+  /* ---- Resources ---- */
+  .hrt-resources {
+    margin-top: 26px; padding-top: 18px; border-top: 1px dashed var(--rule);
+  }
+  .hrt-resources-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px;
+    color: var(--amber); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .hrt-resource-link {
+    display: block; font-size: 13.5px; color: var(--teal); text-decoration: none;
+    padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .hrt-resource-link:last-child { border-bottom: none; }
+  .hrt-resource-link:hover { text-decoration: underline; }
+  .hrt-resource-link::before { content: "↗ "; color: var(--muted); }
+
+  /* ---- Log ---- */
+  .hrt-log-form {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; margin-bottom: 20px;
+  }
+  .hrt-log-form select, .hrt-log-form textarea {
+    width: 100%; background: var(--ink); color: var(--paper); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 13px; margin-bottom: 10px; resize: vertical;
+  }
+  .hrt-log-form label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; display:block; margin-bottom:4px;}
+  .hrt-btn {
+    background: var(--amber); color: var(--ink); border: none; border-radius: 6px; padding: 9px 16px;
+    font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .hrt-btn:hover { opacity: .9; }
+  .hrt-entry {
+    border-left: 2px solid var(--teal); padding: 8px 0 8px 14px; margin-bottom: 14px;
+  }
+  .hrt-entry-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .hrt-entry-meta b { color: var(--amber); }
+  .hrt-entry-field { font-size: 13px; margin-bottom: 2px; }
+  .hrt-entry-field b { color: var(--teal); font-weight: 600; }
+
+  /* ---- Overview ---- */
+  .hrt-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; }
+  .hrt-stat-card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; }
+  .hrt-stat-card .num { font-family: 'JetBrains Mono', monospace; font-size: 26px; color: var(--amber); font-weight: 700; }
+  .hrt-stat-card .label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .hrt-empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 10px 0; }
+
+  .hrt-refresh {
+    background: none; border: 1px solid var(--rule); color: var(--muted); border-radius: 6px;
+    padding: 5px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; cursor: pointer; margin-top: 6px;
+  }
+  .hrt-refresh:hover { color: var(--paper); border-color: var(--teal); }
+</style>
+</head>
+<body>
+
+<div id="hrt-root">
+  <div class="hrt-header">
+    <div>
+      <div class="hrt-title">Build Log &mdash; Hackathon Prep</div>
+      <h1>Team Roadmap</h1>
+    </div>
+    <div class="hrt-daycount">
+      <b id="hrt-total-logs">0</b>entries logged
+      <br><button class="hrt-refresh" id="hrt-refresh-btn">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="hrt-tabs">
+    <button class="hrt-tab active" data-tab="leader">Leader / Backend</button>
+    <button class="hrt-tab" data-tab="frontend">Frontend</button>
+    <button class="hrt-tab" data-tab="ai">AI + Pitch</button>
+    <button class="hrt-tab" data-tab="log">Daily Log</button>
+    <button class="hrt-tab" data-tab="overview">Overview</button>
+  </div>
+
+  <div class="hrt-body" id="hrt-body"></div>
+</div>
+
+<script>
+(function(){
+  // ====== CLOUD STORAGE CONFIG ======
+  // 1. Create a free account at https://jsonbin.io
+  // 2. Create a new bin with content: {"progress":{},"logs":[]}
+  // 3. Copy your Bin ID and X-Master-Key below
+  const JSONBIN_ID = "6a4b8682f5f4af5e296601fc";
+  const JSONBIN_KEY = "$2a$10$JXsMEDQPDbVfIPZP40mcnu.Y4TTgNvakle8Bk3ZH8yIh.7axNo.Ly";
+  const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
+  // ===================================
+
+  const ROADMAPS = {
+    leader: {
+      title: "Leader / Backend Track",
+      weeks: [
+        { label: "WEEK 1", title: "Git, GitHub & version control", items: [
+          "Create a GitHub repo and invite both teammates",
+          "Practice clone, commit, push, pull on a throwaway project",
+          "Cause and resolve one merge conflict on purpose"
+        ]},
+        { label: "WEEK 2", title: "Backend basics", items: [
+          "Refresh Python fundamentals (functions, JSON, requests)",
+          "Pick Flask or FastAPI and build a 'hello world' API endpoint",
+          "Learn how routes, requests, and responses work"
+        ]},
+        { label: "WEEK 3", title: "Data layer", items: [
+          "Set up SQLite and connect it to your API",
+          "Build basic CRUD endpoints (create, read, update, delete)",
+          "Test endpoints with Postman or curl"
+        ]},
+        { label: "WEEK 4", title: "AI API integration", items: [
+          "Get an API key for Claude or another LLM, store it in .env",
+          "Call the AI API from your backend and return a response",
+          "Handle errors and slow responses gracefully"
+        ]},
+        { label: "WEEK 5", title: "Connect & deploy", items: [
+          "Connect your frontend teammate's UI to your API (handle CORS)",
+          "Deploy backend to Render or Railway",
+          "Confirm the deployed API works end-to-end"
+        ]},
+        { label: "WEEK 6", title: "Integration & demo prep", items: [
+          "Run a full test of frontend + backend + AI together",
+          "Add basic error handling for the live demo",
+          "Prepare your part of the demo script"
+        ]}
+      ]
+    },
+    frontend: {
+      title: "Frontend Track",
+      weeks: [
+        { label: "WEEK 1", title: "HTML & CSS fundamentals", items: [
+          "Build one static page from scratch (no templates)",
+          "Learn flexbox and grid by rebuilding a layout you like",
+          "Make it look decent on both desktop and mobile"
+        ]},
+        { label: "WEEK 2", title: "JavaScript basics", items: [
+          "Practice DOM manipulation (change text, toggle classes)",
+          "Handle click and form events",
+          "Fetch data from a public API and display it"
+        ]},
+        { label: "WEEK 3", title: "Component thinking", items: [
+          "Pick vanilla JS or a lightweight framework (React is fine)",
+          "Break your page into reusable components/sections",
+          "Build a working form with validation"
+        ]},
+        { label: "WEEK 4", title: "Connect to backend", items: [
+          "Call your teammate's API from the frontend",
+          "Show loading and error states while data loads",
+          "Display real data returned from the backend"
+        ]},
+        { label: "WEEK 5", title: "Polish", items: [
+          "Make the UI responsive across screen sizes",
+          "Add small, purposeful animations (not decoration for its own sake)",
+          "Check basic accessibility (contrast, keyboard nav)"
+        ]},
+        { label: "WEEK 6", title: "Deploy & demo prep", items: [
+          "Deploy to Vercel or Netlify",
+          "Test the deployed app end-to-end",
+          "Prepare a smooth on-screen demo walkthrough"
+        ]}
+      ]
+    },
+    ai: {
+      title: "AI + Pitch Track",
+      weeks: [
+        { label: "WEEK 1", title: "AI API basics", items: [
+          "Learn prompt engineering fundamentals",
+          "Experiment with Claude/GPT in a playground or console",
+          "Understand system prompts vs user prompts"
+        ]},
+        { label: "WEEK 2", title: "Idea scoping", items: [
+          "Brainstorm 3-5 hackathon problem statements",
+          "Check each for feasibility in a 24-48hr build window",
+          "Pick one with the team and write a one-line pitch"
+        ]},
+        { label: "WEEK 3", title: "Standalone AI prototype", items: [
+          "Write a small script that calls an AI API directly",
+          "Test different prompts and compare output quality",
+          "Document what worked so backend can reuse it"
+        ]},
+        { label: "WEEK 4", title: "Wire it into the app", items: [
+          "Work with backend teammate to plug AI calls into the API",
+          "Test AI responses inside the real app flow",
+          "Handle edge cases (bad input, empty output)"
+        ]},
+        { label: "WEEK 5", title: "Craft the pitch", items: [
+          "Write the problem/solution/impact narrative",
+          "Build a simple slide deck or one-pager",
+          "Script the live demo flow (what to click, in what order)"
+        ]},
+        { label: "WEEK 6", title: "Practice & polish", items: [
+          "Rehearse the pitch out loud, timed",
+          "Prepare answers for likely judge questions",
+          "Nail down a single memorable one-liner for the project"
+        ]}
+      ]
+    }
+  };
+
+  const RESOURCES = {
+    leader: [
+      { name: "Git & GitHub for Beginners — freeCodeCamp", url: "https://www.youtube.com/watch?v=RGOj5yH7evk" },
+      { name: "Python Full Course — freeCodeCamp", url: "https://www.youtube.com/watch?v=rfscVS0vtbw" },
+      { name: "Flask Tutorial Playlist — Corey Schafer", url: "https://www.youtube.com/playlist?list=PL-osiE80TeTt2d9bfVyTiXJA-UTHn6WwU" },
+      { name: "FastAPI Course — freeCodeCamp", url: "https://www.youtube.com/watch?v=0sOvCWFmrtA" },
+      { name: "Official FastAPI Docs", url: "https://fastapi.tiangolo.com/" }
+    ],
+    frontend: [
+      { name: "HTML/CSS/JS Full Course — freeCodeCamp", url: "https://www.youtube.com/watch?v=mU6anWqZJcc" },
+      { name: "CSS Flexbox & Grid — Kevin Powell (channel)", url: "https://www.youtube.com/c/KevinPowell" },
+      { name: "JavaScript Crash Course — Traversy Media", url: "https://www.youtube.com/watch?v=hdI2bqOjy3c" },
+      { name: "React Course — freeCodeCamp", url: "https://www.youtube.com/watch?v=bMknfKXIFA8" },
+      { name: "MDN Web Docs (best syntax reference)", url: "https://developer.mozilla.org/" }
+    ],
+    ai: [
+      { name: "Anthropic Prompt Engineering Guide (official docs)", url: "https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview" },
+      { name: "Prompt Engineering Course — freeCodeCamp", url: "https://www.youtube.com/watch?v=_ZvnD73m40o" },
+      { name: "How to Pitch Your Startup — Y Combinator", url: "https://www.youtube.com/watch?v=cKUFCogYtBQ" },
+      { name: "Google's Prompting Guide (official docs)", url: "https://ai.google.dev/gemini-api/docs/prompting-strategies" }
+    ]
+  };
+
+  const PEOPLE = ["Sharan (Leader)", "Shashank", "Sinchana"];
+  let progress = {};
+  let logs = [];
+  let activeTab = "leader";
+  const configured = JSONBIN_ID !== "PASTE_YOUR_BIN_ID_HERE" && JSONBIN_KEY !== "PASTE_YOUR_MASTER_KEY_HERE";
+
+  async function loadData(){
+    if (!configured){
+      document.getElementById('hrt-body').innerHTML =
+        `<div class="hrt-empty">⚠️ Cloud storage isn't set up yet.<br><br>
+         Open this file in a text editor, find JSONBIN_ID and JSONBIN_KEY near the top of the &lt;script&gt;,
+         and paste in your own values from jsonbin.io.</div>`;
+      return;
+    }
+    try {
+      const res = await fetch(`${JSONBIN_URL}/latest`, { headers: { 'X-Master-Key': JSONBIN_KEY } });
+      const data = await res.json();
+      progress = (data.record && data.record.progress) || {};
+      logs = (data.record && data.record.logs) || [];
+    } catch(e) {
+      console.error('load failed', e);
+    }
+    render();
+  }
+
+  async function saveData(){
+    try {
+      await fetch(JSONBIN_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+        body: JSON.stringify({ progress, logs })
+      });
+    } catch(e) { console.error('save failed', e); }
+  }
+
+  function itemKey(track, wIdx, iIdx){ return track + '-' + wIdx + '-' + iIdx; }
+
+  function renderResources(track){
+    const items = RESOURCES[track] || [];
+    if (!items.length) return '';
+    let html = `<div class="hrt-resources">
+      <div class="hrt-resources-title">Best resources to learn this</div>`;
+    items.forEach(r => {
+      html += `<a class="hrt-resource-link" href="${r.url}" target="_blank" rel="noopener">${r.name}</a>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  function renderRoadmap(track){
+    const data = ROADMAPS[track];
+    const trackProgress = progress[track] || {};
+    let totalItems = 0, doneItems = 0;
+    data.weeks.forEach((w,wi) => w.items.forEach((it,ii) => {
+      totalItems++;
+      if (trackProgress[itemKey(track,wi,ii)]) doneItems++;
+    }));
+    const pct = totalItems ? Math.round((doneItems/totalItems)*100) : 0;
+
+    let html = `<div class="hrt-progress-bar"><div class="hrt-progress-fill" style="width:${pct}%"></div></div>`;
+    html += `<div class="hrt-track">`;
+    data.weeks.forEach((w, wi) => {
+      const weekDone = w.items.every((it,ii) => trackProgress[itemKey(track,wi,ii)]);
+      html += `<div class="hrt-week ${weekDone ? 'done' : ''}">
+        <div class="hrt-week-label">${w.label}</div>
+        <div class="hrt-week-title">${w.title}</div>`;
+      w.items.forEach((it, ii) => {
+        const key = itemKey(track, wi, ii);
+        const checked = !!trackProgress[key];
+        html += `<label class="hrt-item ${checked ? 'checked' : ''}">
+          <input type="checkbox" data-track="${track}" data-key="${key}" ${checked ? 'checked' : ''}/>
+          <span>${it}</span>
+        </label>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+    html += renderResources(track);
+    return html;
+  }
+
+  function renderLogTab(){
+    let html = `<div class="hrt-log-form">
+      <label>Person</label>
+      <select id="hrt-person">${PEOPLE.map(p => `<option>${p}</option>`).join('')}</select>
+      <label>What did you learn today?</label>
+      <textarea id="hrt-learned" rows="2" placeholder="e.g. how fetch() and async/await work"></textarea>
+      <label>What did you build/ship?</label>
+      <textarea id="hrt-built" rows="2" placeholder="e.g. a working login form"></textarea>
+      <label>Any blockers?</label>
+      <textarea id="hrt-blockers" rows="2" placeholder="e.g. stuck on CORS errors"></textarea>
+      <button class="hrt-btn" id="hrt-submit">Log today's progress</button>
+    </div>`;
+
+    if (logs.length === 0){
+      html += `<div class="hrt-empty">No entries yet. Log your first day above.</div>`;
+    } else {
+      const sorted = [...logs].sort((a,b) => new Date(b.date) - new Date(a.date));
+      sorted.forEach(entry => {
+        html += `<div class="hrt-entry">
+          <div class="hrt-entry-meta"><b>${entry.person}</b> &middot; ${entry.date}</div>
+          ${entry.learned ? `<div class="hrt-entry-field"><b>Learned:</b> ${escapeHtml(entry.learned)}</div>` : ''}
+          ${entry.built ? `<div class="hrt-entry-field"><b>Built:</b> ${escapeHtml(entry.built)}</div>` : ''}
+          ${entry.blockers ? `<div class="hrt-entry-field"><b>Blockers:</b> ${escapeHtml(entry.blockers)}</div>` : ''}
+        </div>`;
+      });
+    }
+    return html;
+  }
+
+  function computeStreak(person){
+    const dates = logs.filter(l => l.person === person).map(l => l.date).sort().reverse();
+    if (dates.length === 0) return 0;
+    let streak = 0;
+    let cursor = new Date();
+    cursor.setHours(0,0,0,0);
+    for (let i=0; i<dates.length; i++){
+      const d = new Date(dates[i]);
+      d.setHours(0,0,0,0);
+      const diff = Math.round((cursor - d) / 86400000);
+      if (diff === 0 || diff === 1){
+        if (diff === 1) cursor = d;
+        streak++;
+      } else break;
+    }
+    return streak;
+  }
+
+  function renderOverview(){
+    let html = `<div class="hrt-stat-grid">`;
+    PEOPLE.forEach(p => {
+      const count = logs.filter(l => l.person === p).length;
+      const streak = computeStreak(p);
+      html += `<div class="hrt-stat-card">
+        <div class="num">${streak}</div>
+        <div class="label">${p} &mdash; day streak (${count} total logs)</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="hrt-stat-grid">`;
+    ['leader','frontend','ai'].forEach(track => {
+      const data = ROADMAPS[track];
+      const trackProgress = progress[track] || {};
+      let total = 0, done = 0;
+      data.weeks.forEach((w,wi) => w.items.forEach((it,ii) => {
+        total++;
+        if (trackProgress[itemKey(track,wi,ii)]) done++;
+      }));
+      const pct = total ? Math.round((done/total)*100) : 0;
+      html += `<div class="hrt-stat-card">
+        <div class="num">${pct}%</div>
+        <div class="label">${data.title} complete</div>
+      </div>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function render(){
+    const body = document.getElementById('hrt-body');
+    document.getElementById('hrt-total-logs').textContent = logs.length;
+
+    if (activeTab === 'log') body.innerHTML = renderLogTab();
+    else if (activeTab === 'overview') body.innerHTML = renderOverview();
+    else body.innerHTML = renderRoadmap(activeTab);
+
+    body.querySelectorAll('input[type=checkbox][data-track]').forEach(cb => {
+      cb.addEventListener('change', async (e) => {
+        const track = e.target.getAttribute('data-track');
+        const key = e.target.getAttribute('data-key');
+        if (!progress[track]) progress[track] = {};
+        progress[track][key] = e.target.checked;
+        await saveData();
+        render();
+      });
+    });
+
+    const submitBtn = document.getElementById('hrt-submit');
+    if (submitBtn){
+      submitBtn.addEventListener('click', async () => {
+        const person = document.getElementById('hrt-person').value;
+        const learned = document.getElementById('hrt-learned').value.trim();
+        const built = document.getElementById('hrt-built').value.trim();
+        const blockers = document.getElementById('hrt-blockers').value.trim();
+        if (!learned && !built && !blockers) return;
+        const today = new Date().toISOString().slice(0,10);
+        logs.push({ id: Date.now(), person, date: today, learned, built, blockers });
+        await saveData();
+        render();
+      });
+    }
+  }
+
+  document.querySelectorAll('.hrt-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.hrt-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeTab = tab.getAttribute('data-tab');
+      render();
+    });
+  });
+
+  document.getElementById('hrt-refresh-btn').addEventListener('click', loadData);
+
+  loadData();
+  setInterval(loadData, 20000);
+})();
+</script>
+</body>
+</html>
