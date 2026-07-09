@@ -227,7 +227,7 @@
   // 1. Create a free account at https://jsonbin.io
   // 2. Create a new bin with content: {"progress":{},"logs":[],"githubUsernames":{}}
   // 3. Copy your Bin ID and X-Master-Key below
-  const JSONBIN_ID = "6a4b8682f5f4af5e296601fc";
+  const JSONBIN_ID = "6a4fe4e2f5f4af5e2978db5c";
   const JSONBIN_KEY = "$2a$10$JXsMEDQPDbVfIPZP40mcnu.Y4TTgNvakle8Bk3ZH8yIh.7axNo.Ly";
   const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
   // ===================================
@@ -675,10 +675,48 @@
     const body = document.getElementById('hrt-body');
     document.getElementById('hrt-total-logs').textContent = logs.length;
 
+    // preserve in-progress Daily Log form input (and cursor focus) across re-renders,
+    // so periodic auto-refresh doesn't wipe out what someone is typing
+    let preserved = null;
+    if (activeTab === 'log') {
+      const personEl = document.getElementById('hrt-person');
+      if (personEl) {
+        const active = document.activeElement;
+        preserved = {
+          person: personEl.value,
+          learned: (document.getElementById('hrt-learned') || {}).value || '',
+          built: (document.getElementById('hrt-built') || {}).value || '',
+          blockers: (document.getElementById('hrt-blockers') || {}).value || '',
+          focusedId: active ? active.id : null,
+          selectionStart: (active && typeof active.selectionStart === 'number') ? active.selectionStart : null
+        };
+      }
+    }
+
     if (activeTab === 'log') body.innerHTML = renderLogTab();
     else if (activeTab === 'overview') body.innerHTML = renderOverview();
     else if (activeTab === 'progress') body.innerHTML = renderProgress();
     else body.innerHTML = renderRoadmap(activeTab);
+
+    if (preserved) {
+      const personEl = document.getElementById('hrt-person');
+      const learnedEl = document.getElementById('hrt-learned');
+      const builtEl = document.getElementById('hrt-built');
+      const blockersEl = document.getElementById('hrt-blockers');
+      if (personEl) personEl.value = preserved.person;
+      if (learnedEl) learnedEl.value = preserved.learned;
+      if (builtEl) builtEl.value = preserved.built;
+      if (blockersEl) blockersEl.value = preserved.blockers;
+      if (preserved.focusedId) {
+        const el = document.getElementById(preserved.focusedId);
+        if (el) {
+          el.focus();
+          if (preserved.selectionStart != null && typeof el.setSelectionRange === 'function') {
+            el.setSelectionRange(preserved.selectionStart, preserved.selectionStart);
+          }
+        }
+      }
+    }
 
     body.querySelectorAll('input[type=checkbox][data-track]').forEach(cb => {
       cb.addEventListener('change', async (e) => {
